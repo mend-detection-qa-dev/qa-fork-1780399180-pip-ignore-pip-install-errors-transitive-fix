@@ -1,0 +1,21 @@
+# Regression test for SCA-5589
+# https://mend-io.atlassian.net/browse/SCA-5589
+#
+# Purpose: Validate that when pip install -r requirements.txt FAILS (due to the
+# bogus package below) and the ignorePipInstallErrors=true per-line download
+# fallback fires, transitive dependencies are still reported as TRANSITIVE
+# (nested under their parent), NOT as direct top-level dependencies.
+#
+# Expected dependency tree:
+#   DIRECT  (1):  neo4j-graphrag==1.6.0
+#   TRANSITIVE (~12): pypdf, pydantic, fsspec, neo4j, numpy, etc.
+#
+# CRITICAL: pypdf must appear as a child of neo4j-graphrag, NOT at top level.
+
+# Real direct dependency — neo4j-graphrag 1.6.0 pulls in pypdf, pydantic,
+# fsspec, neo4j, numpy, and others as transitive dependencies.
+neo4j-graphrag==1.6.0
+
+# Bogus package — intentionally non-existent to force pip install to fail
+# and trigger the ignorePipInstallErrors fallback path (per-line download).
+this-package-does-not-exist==99.99.99
