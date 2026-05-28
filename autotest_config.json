@@ -1,0 +1,98 @@
+{
+  "description": "Regression test for SCA-5589: pip ignorePipInstallErrors=true fallback must report transitive dependencies as transitive (NOT as direct). When pip install -r requirements.txt fails and the per-line download fallback fires, only packages explicitly listed in requirements.txt should be direct dependencies. neo4j-graphrag==1.6.0 is the sole direct dep; pypdf, pydantic, fsspec, neo4j, numpy and others are transitive children.",
+  "version": 1.8,
+  "base_config": {
+    "validate_scan_output": true,
+    "scan_output": {
+      "total_libs_scanned": {
+        "gte": 1
+      },
+      "_comment_total_libs_scanned": "At least the direct dep must be scanned. Pre-fix: ~13 were reported as direct."
+    },
+
+    "validate_dependency_tree": true,
+    "dependency_tree": {
+      "check_dependency_tree_detection_status": true,
+      "check_update_request_sca_results": false,
+
+      "expected_total_dependencies_number": {
+        "gte": 5
+      },
+      "_comment_expected_total_dependencies_number": "neo4j-graphrag 1.6.0 has ~12 transitives. Total should be well above 1. If total==1 the scanner only found the direct dep (acceptable but conservative). If total==0 that is a PRODUCT_BUG.",
+
+      "expected_direct_dependencies_number": {
+        "eq": 1
+      },
+      "_comment_expected_direct_dependencies_number": "CRITICAL assertion for SCA-5589 fix validation. MUST be exactly 1 (neo4j-graphrag only). Pre-fix value was 13 (all deps misclassified as direct). If this check fails with actual==13, the bug is still present.",
+
+      "expected_transitive_dependencies_number": {
+        "gte": 4
+      },
+      "_comment_expected_transitive_dependencies_number": "neo4j-graphrag 1.6.0 declares pypdf, pydantic, fsspec, neo4j, numpy and others. Pre-fix: 0 transitives (all were at top level). Post-fix: at least 4+ transitives must appear.",
+
+      "direct_dependencies_names_list": {
+        "eq": [
+          "neo4j_graphrag-1.6.0-py3-none-any.whl"
+        ]
+      },
+      "_comment_direct_dependencies_names_list": "STRICT name check: only neo4j-graphrag must be direct. 'eq' operator ensures NO other package is at the top level. pip artifact format uses underscores and .whl suffix. If pypdf or pydantic appear here, the fix is not working.",
+
+      "transitive_dependencies_names_list": {
+        "contains": [
+          "pypdf",
+          "pydantic",
+          "fsspec",
+          "neo4j"
+        ]
+      },
+      "_comment_transitive_dependencies_names_list": "CRITICAL: these packages were incorrectly reported as DIRECT pre-fix. Post-fix they must be in the transitive list. Uses 'contains' (substring match) to handle pip's .whl filename format (e.g. pypdf-5.9.0-py3-none-any.whl).",
+
+      "expected_package_managers": {
+        "contains": ["PIP"]
+      },
+
+      "validate_agent_versions": true,
+      "expected_agent_version": "",
+      "expected_plugin_version": ""
+    },
+
+    "validate_vulnerabilities_table": true,
+    "vulnerabilities_table": {
+      "check_vulnerabilities_table_structure": true,
+      "expected_total_vulnerabilities_number": {
+        "gte": 0
+      }
+    },
+
+    "validate_scanner_logs": true,
+    "logs": {
+      "check_scanner_logs": true,
+      "detect_secrets": false,
+      "expected_log_lines": [
+        {
+          "operator": "eq",
+          "value": "python.ignorePipInstallErrors=true",
+          "_comment": "Confirm the ignorePipInstallErrors flag is active — this is the trigger condition for the bug scenario."
+        },
+        {
+          "operator": "eq",
+          "value": "pip install command failed",
+          "_comment": "Confirm pip install actually failed (bogus package triggered the failure). If this line is absent, the fallback path was NOT triggered and the test is not validating the right scenario."
+        }
+      ]
+    },
+
+    "validate_reachability": false,
+
+    "validate_project_contributors": true,
+    "contributors": {
+      "check_contributors_structure": true,
+      "expected_contributors": [
+        {"regex": ".*@mend.io"}
+      ],
+      "expected_min_commits": {
+        "gte": 1
+      }
+    }
+  }
+}
